@@ -1,0 +1,138 @@
+<html>
+
+<head>
+
+</head>
+
+<body>
+    <script type="text/javascript" src="script/gl-matrix-min.js"></script>
+
+    <script type="text/javascript">
+        var winX = 0;
+        var winY = 675;
+        var winZ = 0.95095;
+
+        var objX = 0.027241569708763368;
+        var objY = 2.3284265988583157;
+        var objZ = 1.0000011909000945;
+
+        var modelviewMatrix = mat4.fromValues(1.0, 0.0, 0.0, 0.0,
+            0.0, 1.0, 0.0, 0.0,
+            0.0, 0.0, 1.0, 0.0,            
+            -1.5, -1.2, -3.0, 1.0);
+        var projectMatrix = mat4.fromValues(1.3579951524734497, 0.0, 0.0, 0.0,
+            0.0, 2.4142136573791504, 0.0, 0.0,
+            0.0, 0.0, -1.0020020008087158, -1.0,
+            0.0, 0.0, -0.20020020008087158, 0.0);
+
+
+        // var modelMatrix = mat4.create();
+        // var viewMatrix = mat4.create();
+        // mat4.lookAt(viewMatrix, vec3.fromValues(4, 3, -3), vec3.fromValues(0, 0, 0), vec3.fromValues(0, 1, 0));
+        // var modelviewMatrix = mat4.create();
+        // mat4.multiply(modelviewMatrix, modelMatrix, viewMatrix);
+        // var projectMatrix = mat4.create();
+        // mat4.perspective(projectMatrix, glMatrix.toRadian(45.0), 4.0 / 3.0, 0.1, 100.0)
+        var viewport = vec4.fromValues(0, 0, 1200, 675);
+
+        //将世界坐标转换为屏幕坐标。
+        function project(objX, objY, objZ, modelviewMatrix, projectMatrix, viewport, winX, winY, winZ) {
+            var input = new Array(4);
+            var output = new Array(4);
+
+            input[0] = objX;
+            input[1] = objY;
+            input[2] = objZ;
+            input[3] = 1.0;
+
+            vec4.transformMat4(output, input, modelviewMatrix);//模型视图变换
+            vec4.transformMat4(input, output, projectMatrix);//投影变换
+
+            //透视除法，进入标准化设备坐标
+            if (input[3] == 0.0) return;
+            input[0] /= input[3];
+            input[1] /= input[3];
+            input[2] /= input[3];
+
+            //将坐标由-1到1，转换到0-1
+            input[0] = input[0] * 0.5 + 0.5;
+            input[1] = input[1] * 0.5 + 0.5;
+            input[2] = input[2] * 0.5 + 0.5;
+
+            //将x,y转换到屏幕坐标
+            input[0] = input[0] * viewport[2] + viewport[0];
+            input[1] = input[1] * viewport[3] + viewport[1];
+
+            winX = input[0];
+            winY = input[1];
+            winZ = input[2];
+        }
+
+        //将屏幕坐标转换为世界坐标。
+        function Unproject(winX, winY, winZ, modelviewMatrix, projectMatrix, viewport, objX, objY, objZ) {
+            var finalMatrix = mat4.create();
+            var input = new Array(4);
+            var output = new Array(4);
+
+
+            mat4.invert(modelviewMatrix, modelviewMatrix);
+            mat4.invert(projectMatrix, projectMatrix);
+            //合并MVP矩阵
+            mat4.multiply(finalMatrix, modelviewMatrix, projectMatrix);
+
+
+
+            input[0] = winX;
+            input[1] = winY;
+            input[2] = winZ;
+            input[3] = 1.0;
+
+            //从屏幕坐标变换为0到1之间的坐标
+            input[0] = (input[0] - viewport[0]) / viewport[2];
+            input[1] = (input[1] - viewport[1]) / viewport[3];
+
+            //从0到1之间变换到-1到1之间
+            input[0] = input[0] * 2 - 1;
+            input[1] = input[1] * 2 - 1;
+            input[2] = input[2] * 2 - 1;
+
+            //乘以MVP逆矩阵之后得到世界空间的坐标
+            vec4.transformMat4(output, input, finalMatrix);
+            //从齐次坐标变换为笛卡尔坐标
+            if (output[3] == 0.0) return;
+            output[0] /= output[3];
+            output[1] /= output[3];
+            output[2] /= output[3];
+
+            //将结果赋值。
+            objX = output[0];
+            objY = output[1];
+            objZ = output[2];
+        }
+        window.onload = Unproject(winX, winY, winZ, modelviewMatrix, projectMatrix, viewport,objX, objY, objZ);    
+    </script>
+</body>
+
+</html>
+<!-- 
+<script>
+        var a = [1, 2, 3, 4, 5, 6];
+        var b = 2;
+        var modelviewMatrix = mat4.fromValues(-0.59999964, -0.411596596, 0.685994387, 0.0,
+            0.0, 0.857492924, 0.514495790, 0.0,
+            -0.799999952, 0.308697462, -0.514495790, 0.0,
+            0.0, 0.0, -5.83095264, 1.0);
+        var projectMatrix = mat4.fromValues(1.81066012, 0.0, 0.0, 0.0,
+            0.0, 2.41421342, 0.0, 0.0,
+            0.0, 0.0, -1.002002, -1.0,
+            0.0, 0.0, -0.2002002, 0.0);
+
+        function one(a, modelviewMatrix, projectMatrix) {
+            var finalMatrix = mat4.create();
+
+            //合并MVP矩阵
+            mat4.multiply(finalMatrix, modelviewMatrix, projectMatrix);
+            alert("" + a[0] + " " + a[3]);
+        }
+        window.onload = one(a,modelviewMatrix, projectMatrix);
+    </script> -->
